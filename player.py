@@ -29,8 +29,8 @@ class Player():
         else:
         # box input:
         # PaddleAx, PaddleAy, PaddleBx, PaddleBy, BallX, BallY
-            self.input_size = 6
-            self.hidden_layer_size = 4
+            self.input_size = 4
+            self.hidden_layer_size = 2
         
                 
 
@@ -39,7 +39,7 @@ class Player():
         self.save_interval = 1
         # hyperparameters
         # how fast training happens. Higher rate = faster convergence, less accurate
-        self.learning_rate = .01
+        self.learning_rate = .0001
         # how much to discount future rewards
         self.discount_rate = .99
 
@@ -87,7 +87,7 @@ class Player():
         rectA = info[1]
         rectB = info[2]
         rectBall = info[3]
-        return np.asarray([rectA.x, rectA.y, rectB.x, rectB.y, rectBall.x, rectBall.y])
+        return np.asarray([rectA.y/ 700,  rectB.y / 700, rectBall.x / 500, rectBall.y / 700])
     
     # computes a forward pass through the network
     # returns the hidden layer (these values are used for backprop)
