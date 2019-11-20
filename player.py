@@ -3,33 +3,54 @@ import os.path
 import ai
 from comp_exec import Game
 import pygame
+from enum import Enum, auto
+
+class Mode(Enum):
+    image = auto()
+    coords = auto()
 
 class Player():
-    def __init__(self, training_name = None):
+    def __init__(self, training_name = None, mode = None):
         if training_name is None:
             training_name = "competition"
+            
+        if mode is None:
+            self.mode = Mode.image
+        else:
+            self.mode = mode
             
         self.w1_name = training_name + "_w1.txt"
         self.w2_name = training_name + "_w2.txt"
         self.training_name = training_name
         
-        self.input_size = 4725
-        self.hidden_layer_size = 200
+        if mode == Mode.image:
+            self.input_size = 4725
+            self.hidden_layer_size = 200
+        else:
+        # box input:
+        # PaddleAx, PaddleAy, PaddleBx, PaddleBy, BallX, BallY
+            self.input_size = 6
+            self.hidden_layer_size = 12
+        
+                
 
         self.weights_one = []
         self.weights_two = []
         self.save_interval = 1
         # hyperparameters
         # how fast training happens. Higher rate = faster convergence, less accurate
-        self.learning_rate = .0001
+        self.learning_rate = .001
         # how much to discount future rewards
         self.discount_rate = .99
 
         if os.path.exists(self.w1_name) and os.path.exists(self.w2_name):
             self.loadWeights()
         else:
-            self.weights_one = np.random.randn(self.hidden_layer_size, self.input_size)
-            self.weights_two = np.random.randn(self.hidden_layer_size)
+            # https://towardsdatascience.com/weight-initialization-techniques-in-neural-networks-26c649eb3b78
+            # weight intialization
+            self.weights_one = np.random.randn(self.hidden_layer_size, self.input_size) * pow(1 / self.input_size, 1/2)
+            self.weights_two = np.random.randn(self.hidden_layer_size) * pow(2 / self.hidden_layer_size, 1/2)
+        
         
     def loadWeights(self):            
         self.weights_one = np.loadtxt(self.w1_name)
@@ -60,6 +81,13 @@ class Player():
         np_array[np_array != 144] = 1
         np_array[np_array != 1] = 0
         return np_array
+    
+    #info process
+    def infoProcses(self, info):
+        rectA = info[1]
+        rectB = info[2]
+        rectBall = info[3]
+        return np.asarray([rectA.x, rectA.y, RectB.x, rectB.y, rectBall.x, rectBall.y])
     
     # computes a forward pass through the network
     # returns the hidden layer (these values are used for backprop)
@@ -138,6 +166,10 @@ class Player():
         # representing the coordinates of the ball, the reward obtained from the previous action
         # from the last screen, boolean indicating whether game is done]
         #print(info[0])
+        if self.mode == Mode.image:
+            input_layer = self.screenProcess(np.array(info[0]))
+        else:
+            input_layer = self.infoProcses(info)
         input_layer = self.screenProcess(np.array(info[0]))        
         hidden, output = self.forward_pass(input_layer)
         if train:
@@ -152,6 +184,8 @@ class Player():
         while not game.done:
             game.step()
         pygame.quit()
+        
+        
     def train(self, save_name):
         game = Game(ai.getAction, self.getAction, False)
         pygame.init()
@@ -161,7 +195,11 @@ class Player():
         episode = 0
         while True:
             info  = game.reset()
-            prev_input = self.screenProcess(np.array(info[0]))
+            
+            if self.mode == Mode.image:
+                prev_input = self.screenProcess(np.array(info[0]))
+            else:
+                prev_input = self.infoProcses(info)
             
             
             rewards = []
@@ -186,10 +224,12 @@ class Player():
                 hidden_layer_values  = info[8]
                 hidden_values.append(hidden_layer_values)
                 
-                prev_input = self.screenProcess(np.array(info[0]))
+                if self.mode == Mode.image:
+                     prev_input = self.screenProcess(np.array(info[0]))
+                else:
+                    prev_input = self.infoProcses(info)
             
             #compute backprop to adjust weights
-            print("here")
             self.backwards_pass(inputs, hidden_values, errors, rewards)              
             print("episode:", episode, "reward:", sum(rewards))
             episode_rewards.append(sum(rewards))
@@ -214,8 +254,13 @@ if __name__ == "__main__":
         raise("missing args")
     mode = sys.argv[1]
     name = sys.argv[2]
+    train_mode = sys.argv[3]
+    if train_mode == "image":
+        train_mode = Mode.image
+    else:
+        train_mode = Mode.coords
     try: 
-        save_name = sys.argv[3]
+        save_name = sys.argv[4]
     except:
         save_name = name
     player =  Player(name)

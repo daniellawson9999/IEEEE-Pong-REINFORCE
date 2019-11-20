@@ -111,7 +111,7 @@ class Game():
 
         pygame.display.flip()
         
-        info = [pygame.surfarray.array3d(pygame.display.get_surface()), self.paddleA.rect, self.paddleB.rect, self.ball.rect, self.reward, self.done]
+        info[4] = self.reward
         
         if train:
             info.append(actionB)
