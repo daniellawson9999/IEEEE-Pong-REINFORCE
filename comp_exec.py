@@ -34,8 +34,8 @@ class Game():
             elif event.type==pygame.KEYDOWN:
                     if event.key==pygame.K_x: #Pressing the x Key will quit the game
                          self.done=True
-
-        if self.scoreA == 21 or self.scoreB == 21:
+        score = 10
+        if self.scoreA == score or self.scoreB == score:
             self.winner = "Player A" if self.scoreA == 21 else "Player B"
             self.done = True
 

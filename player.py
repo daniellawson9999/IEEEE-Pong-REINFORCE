@@ -17,20 +17,20 @@ class Player():
         if mode is None:
             self.mode = Mode.image
         else:
-            self.mode = mode
+            self.mode = Mode.coords
             
         self.w1_name = training_name + "_w1.txt"
         self.w2_name = training_name + "_w2.txt"
         self.training_name = training_name
         
-        if mode == Mode.image:
+        if self.mode == Mode.image:
             self.input_size = 4725
             self.hidden_layer_size = 200
         else:
         # box input:
         # PaddleAx, PaddleAy, PaddleBx, PaddleBy, BallX, BallY
             self.input_size = 6
-            self.hidden_layer_size = 12
+            self.hidden_layer_size = 4
         
                 
 
@@ -39,7 +39,7 @@ class Player():
         self.save_interval = 1
         # hyperparameters
         # how fast training happens. Higher rate = faster convergence, less accurate
-        self.learning_rate = .001
+        self.learning_rate = .01
         # how much to discount future rewards
         self.discount_rate = .99
 
@@ -87,7 +87,7 @@ class Player():
         rectA = info[1]
         rectB = info[2]
         rectBall = info[3]
-        return np.asarray([rectA.x, rectA.y, RectB.x, rectB.y, rectBall.x, rectBall.y])
+        return np.asarray([rectA.x, rectA.y, rectB.x, rectB.y, rectBall.x, rectBall.y])
     
     # computes a forward pass through the network
     # returns the hidden layer (these values are used for backprop)
@@ -104,7 +104,7 @@ class Player():
     # output array: contains array of output for every step
     # reward_array: contains awards accumulated at every step
     def backwards_pass(self, input_array, hidden_array, error_array, reward_array):
-        import pdb; pdb.set_trace()
+        #import pdb; pdb.set_trace()
         length = len(input_array)
         # convert to numpy arrays
         input_array = np.asarray(input_array)
@@ -123,7 +123,7 @@ class Player():
                 previous_reward = 0
             discounted_reward_array[i] = reward_array[i] + self.discount_rate * previous_reward
             previous_reward = discounted_reward_array[i]
-        import pdb; pdb.set_trace()
+        #import pdb; pdb.set_trace()
         # standardize rewards (similar to getting a z score in statistics)
         discounted_reward_array -= np.mean(discounted_reward_array)
         discounted_reward_array /= np.std(discounted_reward_array)
@@ -140,6 +140,8 @@ class Player():
         w1_delta = np.dot(hidden_delta.T, input_array)
         
         # we can now adjust our weights with the gradient arrays given by w1_delta and w2_delta
+        print("w1", w1_delta)
+        print("w2", w2_delta)
         self.weights_one += self.learning_rate * w1_delta
         self.weights_two += self.learning_rate * w2_delta
         
@@ -170,7 +172,6 @@ class Player():
             input_layer = self.screenProcess(np.array(info[0]))
         else:
             input_layer = self.infoProcses(info)
-        input_layer = self.screenProcess(np.array(info[0]))        
         hidden, output = self.forward_pass(input_layer)
         if train:
             return self.action_from_probability(output), output, hidden
@@ -263,7 +264,7 @@ if __name__ == "__main__":
         save_name = sys.argv[4]
     except:
         save_name = name
-    player =  Player(name)
+    player =  Player(name, mode)
     if mode == "train":
         player.train(save_name)
     else:
