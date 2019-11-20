@@ -24,7 +24,7 @@ class Game():
 
         pygame.quit()
 
-    def step(self):        
+    def step(self, train = False):        
         self.reward = 0
 
         # PYGAME
@@ -44,11 +44,14 @@ class Game():
 
         # Compiling useful information
         info = [rgbarray, self.paddleA.rect, self.paddleB.rect, self.ball.rect, self.reward, self.done]
+    
 
         # Sending info to first function to get action
         actionA = self.fA(*info)
         self.paddleA.moveUp(actionA)
 
+        prob = None
+        hidden = None
         # If indicated that user is providing input
         if self.user:
             keys = pygame.key.get_pressed()
@@ -58,7 +61,10 @@ class Game():
                 self.paddleB.moveDown(10)
         # If two programs playing against each other
         else:
-            actionB = self.fB(info)
+            if train:
+                actionB, prob, hidden = self.fB(info, True)
+            else:
+                actionB = self.fB(info)
             self.paddleB.moveUp(actionB)
             #print(actionB)
 
@@ -104,6 +110,13 @@ class Game():
         self.screen.blit(text, (375,10))
 
         pygame.display.flip()
+        
+        info = [pygame.surfarray.array3d(pygame.display.get_surface()), self.paddleA.rect, self.paddleB.rect, self.ball.rect, self.reward, self.done]
+        
+        if train:
+            info.append(actionB)
+            info.append(prob)
+            info.append(hidden)
         return info
 
     def reset(self):
@@ -133,6 +146,6 @@ class Game():
 
         rgbarray = pygame.surfarray.array3d(pygame.display.get_surface())
         info = [rgbarray, self.paddleA.rect, self.paddleB.rect, self.ball.rect, 0, self.done]
-
+        return info
         
 
